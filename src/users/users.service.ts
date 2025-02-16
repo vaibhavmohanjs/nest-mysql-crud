@@ -1,26 +1,37 @@
 import { Injectable } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { DatabaseService } from 'src/common/database/database.service';
 
 @Injectable()
 export class UsersService {
-  create(createUserDto: CreateUserDto) {
-    return 'This action adds a new user';
+  constructor(private readonly dbService: DatabaseService) {}
+
+  async findAll() {
+    return this.dbService.query('SELECT * FROM users');
   }
 
-  findAll() {
-    return `This action returns all users`;
+  async findOne(id: number) {
+    const result = await this.dbService.query('SELECT * FROM users WHERE id = ?', [id]);
+    return result[0] || null;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} user`;
+  async create(data: CreateUserDto) {
+    const { name, email } = data;
+    const result = await this.dbService.query('INSERT INTO users (name, email) VALUES (?, ?)', [name, email]);
+
+    return { id: result.insertId, ...data };
   }
 
-  update(id: number, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} user`;
+  async update(id: number, data: UpdateUserDto) {
+    const { name, email } = data;
+    await this.dbService.query('UPDATE users SET name = ?, email = ? WHERE id = ?', [name, email, id]);
+
+    return this.findOne(id);
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} user`;
+  async remove(id: number) {
+    const result = await this.dbService.query('DELETE FROM users WHERE id = ?', [id]);
+    return result.affectedRows > 0;
   }
 }
